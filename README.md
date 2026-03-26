@@ -1,25 +1,98 @@
-# PriCoder
+# Fix AI-generated code that breaks on your internal APIs
+## TL;DR
+AI-generated code still breaks on internal APIs — even when the model sees the full API documentation.
 
-This repo provide a full pipeline for **private-library-oriented code generation**: benchmark construction, inference/evaluation, and training-data synthesis for teaching models to truly use private libraries effectively.
+PriCoder makes your API calls actually work.
 
----
+→ Correct API calls  
+→ Fewer runtime errors  
+→ Code that actually runs
 
-## 🧭 Repository Map
+## Try it in your IDE
+See broken API calls fixed in your own codebase.
+1. Install the plugin  
+2. Open your project  
+3. Ask AI to modify or generate code using your internal APIs  
+- Install [Enia Code](https://www.eniacode.com) plugin
+- View [docs](https://www.eniacode.com/docs)
 
-- `api_extract/` — API-doc extraction and filtering
-- `benchmark_generation/` — benchmark instance generation
-- `infer_and_eval/` — generation, execution-based evaluation, metric aggregation
-- `data_generation/` — PriCoder training-data synthesis pipeline
-- `data/` — reusable JSONL assets (documents and benchmarks)
-- `pypi_crawling/` — auxiliary package mining/filtering tools
+## Where it breaks
+Looks correct. Still wrong.
 
----
+The model sees the API — but fails to follow required usage patterns:
+##### ❌ LLM output (with API access)
 
-## 🚀 Quick Workflow
+```python
+import ndonnx
 
-1. Extract API docs from a target private library
-2. Generate benchmark instances from API docs
-3. Run model inference and execution-based evaluation
-4. Synthesize PriCoder training data and fine-tune
+def safe_ratio(x, y):
+    result = ndonnx.divide(x, y)              # missing asarray
+    return ndonnx.where(y == 0, 0.0, result)      # incorrect API usage
+```
+##### ✅ correct usage
 
-**Detailed commands are in each subdirectory README.**
+```python
+import ndonnx
+
+def safe_ratio(x, y, fallback=0.0):
+    x = ndonnx.asarray(x)
+    y = ndonnx.asarray(y)
+
+    quotient = ndonnx.divide(x, y)
+    return ndonnx.where(y == 0, fallback, quotient)
+```
+The model sees the APIs — but still fails to invoke them correctly, even with full API specifications.
+
+## What PriCoder does
+PriCoder trains models on how APIs are actually used in real code.
+- learns API invocation patterns, not just documentation
+- improves multi-step API usage
+- reduces incorrect or missing API calls in real code
+
+## Why it works
+Most approaches (RAG):
+- retrieve API documentation
+- rely on models to use it correctly
+## PriCoder:
+- trains on how APIs are actually invoked
+- learns usage patterns from synthesized execution-validated data
+- improves API usage, not just API awareness
+
+## Results
+Even with full API documentation, models still fail on API-heavy code generation.
+
+Baseline performance is low — pass@1 only improves from ~8% to ~13% with oracle API specs.
+
+PriCoder significantly improves this:
+- +20%+ absolute pass@1 improvement  
+- higher success rates in multi-call workflows  
+- fewer runtime execution failures
+
+These gains come with negligible impact on general code generation.
+(See [paper](https://arxiv.org/abs/2603.15159) for full evaluation details)
+
+## Paper
+[To See is Not to Master: Teaching LLMs to Use Private Libraries for Code Generation](https://arxiv.org/abs/2603.15159)
+
+## Notes
+PriCoder focuses on a core gap in current AI coding systems:
+
+Models can see APIs, but don’t know how to use them.
+
+This project addresses that gap.
+
+Feedback and discussions are welcome.
+
+## Local Pipeline
+Run the main PriCoder pipeline:
+
+```md
+```bash
+cd data_generation
+cd ../api_extract
+cd ../benchmark_generation
+cd ../infer_and_eval
+```
+Optional steps:
+- pypi_crawling/: collect and filter package/API sources 
+- data/: contains reusable datasets (documents and benchmarks)
